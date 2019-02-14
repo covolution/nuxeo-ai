@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.ai.comprehendmedical.ComprehendMedicalService" version="1.0">
+
+  <implementation class="org.nuxeo.ai.comprehendmedical.ComprehendMedicalServiceImpl" />
+
+  <service>
+    <provide interface="org.nuxeo.ai.comprehendmedical.ComprehendMedicalService" />
+  </service>
+
+  <extension point="enrichment" target="org.nuxeo.ai.services.AIComponent">
+    <enrichment name="aws.medicalEntities" kind="/classification/custom"
+                class="org.nuxeo.ai.enrichment.MedicalEntitiesEnrichmentService" />
+  </extension>
+
+</component>
