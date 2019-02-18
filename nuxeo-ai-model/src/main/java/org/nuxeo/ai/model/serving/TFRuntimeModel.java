@@ -19,6 +19,7 @@
 package org.nuxeo.ai.model.serving;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
@@ -52,6 +53,9 @@ import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.blob.ManagedBlob;
+import org.nuxeo.ecm.core.schema.types.resolver.ObjectResolverService;
+import org.nuxeo.ecm.directory.DirectoryEntryResolver;
+import org.nuxeo.ecm.directory.api.DirectoryEntry;
 import org.nuxeo.runtime.api.Framework;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -89,6 +93,8 @@ public class TFRuntimeModel extends AbstractRuntimeModel implements EnrichmentSe
     protected String kind;
 
     protected String modelPath = "";
+
+    protected DirectoryEntryResolver resolver;
 
     protected boolean useLabels;  //Indicates if enrichment should use suggestion or labels
 
@@ -168,7 +174,8 @@ public class TFRuntimeModel extends AbstractRuntimeModel implements EnrichmentSe
                         for (int i = 0; i < outputLabels.size(); i++) {
                             float confidence = outputProbabilities.get(i).floatValue();
                             if (confidence > minConfidence) {
-                                labels.add(new EnrichmentMetadata.Label(outputLabels.get(i).asText(), confidence));
+                                labels.add(new EnrichmentMetadata.Label(lookup(outputLabels.get(i)
+                                                                                           .asText()), confidence));
                             }
                         }
                     }
@@ -182,6 +189,28 @@ public class TFRuntimeModel extends AbstractRuntimeModel implements EnrichmentSe
             log.warn(String.format("Unable to read the json response: %s", content), e);
         }
         return results;
+    }
+
+    /**
+     * Lookup a key and replace it
+     */
+    protected String lookup(String key) {
+        if (resolver == null) {
+            resolver = (DirectoryEntryResolver) Framework.getService(ObjectResolverService.class)
+                                                         .getResolver(DirectoryEntryResolver.NAME,
+                                                                      singletonMap(DirectoryEntryResolver.PARAM_DIRECTORY, "characterNames"));
+        }
+        if (resolver != null) {
+            DirectoryEntry entry = (DirectoryEntry) resolver.fetch(key);
+            if (entry != null) {
+                DocumentModel entryModel = entry.getDocumentModel();
+                String value = (String) entryModel.getPropertyValue("label");
+                if (value != null) {
+                    return value;
+                }
+            }
+        }
+        return key;
     }
 
     /**
