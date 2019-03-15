@@ -111,4 +111,10 @@
     </extension>
 </#if>
 
+<extension target="org.nuxeo.ecm.core.event.EventServiceComponent" point="listener">
+    <listener name="textractMetadataListener" script="script/textractListener.groovy">
+      <event>textractMetadataCreated</event>
+    </listener>
+</extension>
+
 </component>
