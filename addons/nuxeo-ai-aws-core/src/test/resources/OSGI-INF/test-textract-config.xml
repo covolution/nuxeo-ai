@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.ai.aws.test">
+
+  <extension target="org.nuxeo.runtime.aws.AWSConfigurationService" point="configuration">
+    <configuration id="nuxeo-ai-aws">
+      <region>eu-west-1</region>
+    </configuration>
+  </extension>
+
+  <extension target="org.nuxeo.runtime.ConfigurationService" point="configuration">
+    <property name="nuxeo.enrichment.aws.s3">false</property>
+  </extension>
+
+</component>
