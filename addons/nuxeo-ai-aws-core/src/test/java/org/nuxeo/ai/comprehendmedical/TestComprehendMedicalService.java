@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Collection;
+import javax.inject.Inject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ai.AWS;
@@ -36,7 +37,7 @@ import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import com.amazonaws.services.comprehendmedical.model.DetectEntitiesResult;
-import com.google.inject.Inject;
+import com.amazonaws.services.comprehendmedical.model.DetectPHIResult;
 
 @RunWith(FeaturesRunner.class)
 @Features({EnrichmentTestFeature.class, PlatformFeature.class})
@@ -64,6 +65,26 @@ public class TestComprehendMedicalService {
         assertEquals(1, metadataCollection.size());
         EnrichmentMetadata result = metadataCollection.iterator().next();
         assertEquals(1, result.getTags().size());
+    }
+
+    @Test
+    public void testPHI() {
+        AWS.assumeCredentials();
+        EnrichmentService service = aiComponent.getEnrichmentService("aws.medicalPHI");
+        assertNotNull(service);
+        DetectPHIResult results = Framework.getService(ComprehendMedicalService.class)
+                                           .detectPHI("Patient is John Smith, a 48 year old teacher and resident of Seattle, Washington.");
+        assertNotNull(results);
+        assertEquals(4, results.getEntities().size());
+
+        BlobTextFromDocument textStream = new BlobTextFromDocument();
+        textStream.setId("docId");
+        textStream.setRepositoryName("test");
+        textStream.addProperty("dc:title", "Patient is John Smith, a 48 year old teacher and resident of Seattle, Washington.");
+        Collection<EnrichmentMetadata> metadataCollection = service.enrich(textStream);
+        assertEquals(1, metadataCollection.size());
+        EnrichmentMetadata result = metadataCollection.iterator().next();
+        assertEquals(4, result.getTags().size());
     }
 
 }

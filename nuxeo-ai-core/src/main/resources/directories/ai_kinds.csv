@@ -4,6 +4,7 @@
 "prediction","Prediction","","0"
 "face","Face Detection","tagging","0"
 "celebrity","Celebrity Detection","tagging","0"
+"entities","Entity Detection","tagging","0"
 "imageLabels","Object Detection in images","classification","0"
 "sentiment","Sentiment Analysis","classification","0"
 "custom","Custom Model Classification","classification","0"

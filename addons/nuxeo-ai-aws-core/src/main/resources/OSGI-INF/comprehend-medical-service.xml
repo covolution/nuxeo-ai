@@ -8,8 +8,12 @@
   </service>
 
   <extension point="enrichment" target="org.nuxeo.ai.services.AIComponent">
-    <enrichment name="aws.medicalEntities" kind="/classification/custom"
+    <enrichment name="aws.medicalEntities" kind="/tagging/entities"
                 class="org.nuxeo.ai.enrichment.MedicalEntitiesEnrichmentService" />
   </extension>
 
+  <extension point="enrichment" target="org.nuxeo.ai.services.AIComponent">
+    <enrichment name="aws.medicalPHI" kind="/tagging/entities"
+                class="org.nuxeo.ai.enrichment.MedicalPHIEnrichmentService" />
+  </extension>
 </component>

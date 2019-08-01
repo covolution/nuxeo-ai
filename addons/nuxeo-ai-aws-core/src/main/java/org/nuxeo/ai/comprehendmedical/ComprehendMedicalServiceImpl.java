@@ -20,17 +20,18 @@ package org.nuxeo.ai.comprehendmedical;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.nuxeo.runtime.aws.NuxeoAWSCredentialsProvider;
-import org.nuxeo.runtime.aws.NuxeoAWSRegionProvider;
+import org.nuxeo.ai.AWSHelper;
 import org.nuxeo.runtime.model.ComponentContext;
 import org.nuxeo.runtime.model.DefaultComponent;
 import com.amazonaws.services.comprehendmedical.AWSComprehendMedical;
 import com.amazonaws.services.comprehendmedical.AWSComprehendMedicalClientBuilder;
 import com.amazonaws.services.comprehendmedical.model.DetectEntitiesRequest;
 import com.amazonaws.services.comprehendmedical.model.DetectEntitiesResult;
+import com.amazonaws.services.comprehendmedical.model.DetectPHIRequest;
+import com.amazonaws.services.comprehendmedical.model.DetectPHIResult;
 
 /**
- * Calls AWS ComprehendMedical apis
+ * Calls AWS Comprehend Medical apis
  */
 public class ComprehendMedicalServiceImpl extends DefaultComponent implements ComprehendMedicalService {
 
@@ -55,8 +56,9 @@ public class ComprehendMedicalServiceImpl extends DefaultComponent implements Co
                 if (localClient == null) {
                     AWSComprehendMedicalClientBuilder builder =
                             AWSComprehendMedicalClientBuilder.standard()
-                                                         .withCredentials(NuxeoAWSCredentialsProvider.getInstance())
-                                                         .withRegion(NuxeoAWSRegionProvider.getInstance().getRegion());
+                                                             .withCredentials(AWSHelper.getInstance()
+                                                                                       .getCredentialsProvider())
+                                                             .withRegion(AWSHelper.getInstance().getRegion());
                     client = localClient = builder.build();
                 }
             }
@@ -78,5 +80,21 @@ public class ComprehendMedicalServiceImpl extends DefaultComponent implements Co
             log.debug("DetectEntitiesResult is " + detectEntitiesResult);
         }
         return detectEntitiesResult;
+    }
+
+    @Override
+    public DetectPHIResult detectPHI(String text) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Calling DetectPHI for " + text);
+        }
+
+        DetectPHIRequest detectRequest = new DetectPHIRequest().withText(text);
+        DetectPHIResult detectResult = getClient().detectPHI(detectRequest);
+
+        if (log.isDebugEnabled()) {
+            log.debug("DetectPHIResult is " + detectResult);
+        }
+        return detectResult;
     }
 }

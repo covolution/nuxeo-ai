@@ -19,6 +19,7 @@
 package org.nuxeo.ai.comprehendmedical;
 
 import com.amazonaws.services.comprehendmedical.model.DetectEntitiesResult;
+import com.amazonaws.services.comprehendmedical.model.DetectPHIResult;
 
 /**
  * Works with AWS ComprehendMedical
@@ -29,4 +30,9 @@ public interface ComprehendMedicalService {
      * Detect entities for the provided text
      */
     DetectEntitiesResult detectEntities(String text);
+
+    /**
+     * Detect personal health information for the provided text
+     */
+    DetectPHIResult detectPHI(String text);
 }

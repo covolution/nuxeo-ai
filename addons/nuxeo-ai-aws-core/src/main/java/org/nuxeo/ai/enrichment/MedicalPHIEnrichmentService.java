@@ -30,18 +30,18 @@ import org.nuxeo.ai.comprehendmedical.ComprehendMedicalService;
 import org.nuxeo.ai.metadata.AIMetadata;
 import org.nuxeo.ai.pipes.types.BlobTextFromDocument;
 import org.nuxeo.runtime.api.Framework;
-import com.amazonaws.services.comprehendmedical.model.DetectEntitiesResult;
+import com.amazonaws.services.comprehendmedical.model.DetectPHIResult;
 import com.amazonaws.services.comprehendmedical.model.Entity;
 
 /**
- * An enrichment service for entities analysis
+ * An enrichment service for personal health information analysis
  */
-public class MedicalEntitiesEnrichmentService extends AbstractMedicalEnrichmentService implements EnrichmentCachable {
+public class MedicalPHIEnrichmentService extends AbstractMedicalEnrichmentService implements EnrichmentCachable {
 
     @Override
     protected Collection<EnrichmentMetadata> process(BlobTextFromDocument blobTextFromDoc, String propName,
                                                      String propValue) {
-        DetectEntitiesResult result = Framework.getService(ComprehendMedicalService.class).detectEntities(propValue);
+        DetectPHIResult result = Framework.getService(ComprehendMedicalService.class).detectPHI(propValue);
         if (result != null && !result.getEntities().isEmpty()) {
             return processResult(blobTextFromDoc, propName, result);
         }
@@ -52,7 +52,7 @@ public class MedicalEntitiesEnrichmentService extends AbstractMedicalEnrichmentS
      * Processes the result of the call to AWS
      */
     protected Collection<EnrichmentMetadata> processResult(BlobTextFromDocument blobTextFromDoc, String propName,
-                                                           DetectEntitiesResult result) {
+                                                           DetectPHIResult result) {
         List<AIMetadata.Tag> tags = result.getEntities()
                                           .stream()
                                           .map(this::newEntityTag)
@@ -70,11 +70,15 @@ public class MedicalEntitiesEnrichmentService extends AbstractMedicalEnrichmentS
     protected AIMetadata.Tag newEntityTag(Entity e) {
         if (e.getScore() > minConfidence) {
             List<AIMetadata.Label> features = new ArrayList<>();
-            e.getAttributes().forEach(attr ->
-                                              features.add(new AIMetadata.Label(attr.getType() + "/" + attr.getText(),
-                                                                                attr.getScore())));
-            e.getTraits().forEach(t -> features.add(new AIMetadata.Label(t.getName(), t.getScore())));
-            return new AIMetadata.Tag(e.getText(), e.getCategory(), e.getType(), null, features, e.getScore());
+            if (e.getAttributes() != null) {
+                e.getAttributes()
+                 .forEach(attr -> features.add(new AIMetadata.Label(attr.getType() + "/" + attr.getText(),
+                                                                    attr.getScore())));
+            }
+            if (e.getTraits() != null) {
+                e.getTraits().forEach(t -> features.add(new AIMetadata.Label(t.getName(), t.getScore())));
+            }
+            return new AIMetadata.Tag(e.getText(), e.getType(), e.getCategory(), null, features, e.getScore());
         }
         return null;
     }
