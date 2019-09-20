@@ -18,10 +18,13 @@
  */
 package org.nuxeo.ai.model;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.nuxeo.ai.AIConstants.ENRICHMENT_ITEMS;
+import static org.nuxeo.ai.AIConstants.ENRICHMENT_SCHEMA_NAME;
 import static org.nuxeo.ai.model.AiDocumentTypeConstants.CORPUS_INPUTS;
 import static org.nuxeo.ai.model.AiDocumentTypeConstants.CORPUS_JOBID;
 import static org.nuxeo.ai.model.AiDocumentTypeConstants.CORPUS_OUTPUTS;
@@ -32,9 +35,19 @@ import static org.nuxeo.ai.pipes.functions.PropertyUtils.IMAGE_TYPE;
 import static org.nuxeo.ai.pipes.functions.PropertyUtils.NAME_PROP;
 import static org.nuxeo.ai.pipes.functions.PropertyUtils.TYPE_PROP;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.inject.Inject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.nuxeo.ai.enrichment.EnrichmentMetadata;
+import org.nuxeo.ai.metadata.AIMetadata;
 import org.nuxeo.ai.model.export.DatasetExportOperation;
+import org.nuxeo.ai.pipes.types.BlobTextFromDocument;
+import org.nuxeo.ai.services.DocMetadataService;
 import org.nuxeo.ecm.automation.AutomationService;
 import org.nuxeo.ecm.automation.OperationChain;
 import org.nuxeo.ecm.automation.OperationContext;
@@ -42,6 +55,7 @@ import org.nuxeo.ecm.automation.OperationException;
 import org.nuxeo.ecm.automation.test.AutomationFeature;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.model.Property;
 import org.nuxeo.ecm.core.api.model.PropertyNotFoundException;
 import org.nuxeo.ecm.core.bulk.CoreBulkFeature;
 import org.nuxeo.elasticsearch.test.RepositoryElasticSearchFeature;
@@ -49,10 +63,6 @@ import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.TransactionalFeature;
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @RunWith(FeaturesRunner.class)
 @Features({AutomationFeature.class, CoreBulkFeature.class, RepositoryElasticSearchFeature.class})
@@ -72,6 +82,9 @@ public class TestDatasetOperation {
 
     @Inject
     protected TransactionalFeature txFeature;
+
+    @Inject
+    protected DocMetadataService docMetadataService;
 
     @Test
     public void shouldCallWithParameters() throws OperationException {
@@ -102,6 +115,45 @@ public class TestDatasetOperation {
                                                                returned));
         assertEquals("A corpus document must be created.", 1, docs.size());
         return docs.get(0);
+    }
+
+    @Test
+    public void testSaveTags() {
+        assertNotNull(docMetadataService);
+        DocumentModel testDoc = session.createDocumentModel("/", "My Save tags", "File");
+        testDoc = session.createDocument(testDoc);
+        List<EnrichmentMetadata.Label> labels = Stream.of("label1", "l2", "lab3")
+                                                      .map(l -> new EnrichmentMetadata.Label(l, 1))
+                                                      .collect(Collectors.toList());
+
+        List<EnrichmentMetadata.Tag> tags =
+                Stream.of("tag1", "tag2")
+                      .map(l -> new EnrichmentMetadata.Tag(l,
+                                                           "t1",
+                                                           "myref" + l,
+                                                           new AIMetadata.Box(0.5f, 0.3f, -0.2f, 2f),
+                                                           singletonList(new EnrichmentMetadata.Label("f" + l, 1)),
+                                                           0.65f))
+                      .collect(Collectors.toList());
+        BlobTextFromDocument blobTextFromDoc = new BlobTextFromDocument(testDoc);
+        blobTextFromDoc.addProperty("dc:title", "tbloby");
+        EnrichmentMetadata metadata =
+                new EnrichmentMetadata.Builder("m1", "reverse", blobTextFromDoc)
+                        .withLabels(labels)
+                        .withTags(tags)
+                        .withDigest("blobxx")
+                        .withDigest("freblogs")
+                        .withCreator("bob")
+                        .build();
+        assertNotNull(metadata);
+        testDoc = docMetadataService.saveEnrichment(session, metadata);
+        txFeature.nextTransaction();
+        Property classProp = testDoc.getPropertyObject(ENRICHMENT_SCHEMA_NAME, ENRICHMENT_ITEMS);
+        assertNotNull(classProp);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> classifications = classProp.getValue(List.class);
+        assertEquals(1, classifications.size());
+        Map<String, Object> classification = classifications.get(0);
     }
 
     @Test

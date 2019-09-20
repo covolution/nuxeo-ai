@@ -23,6 +23,15 @@ import static java.util.Collections.emptyList;
 import static org.nuxeo.ai.enrichment.EnrichmentUtils.getBlobFromProvider;
 import static org.nuxeo.ai.pipes.services.JacksonUtil.MAPPER;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,15 +50,6 @@ import org.nuxeo.ai.metadata.AIMetadata;
 import org.nuxeo.ai.pipes.types.BlobTextFromDocument;
 import org.nuxeo.ai.rest.RestEnrichmentService;
 import org.nuxeo.ecm.core.api.NuxeoException;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * An implementation of an EnrichmentService with Sightengine.
@@ -239,20 +239,30 @@ public class ImageQualityEnrichmentService extends RestEnrichmentService {
         }
 
         if (props.getFaces() != null && !props.getFaces().isEmpty()) {
-            for (Faces faces : props.getFaces()) {
-                if (faces.getCelebrity() != null && !faces.getCelebrity().isEmpty()) {
-                    for (Celebrity celeb : faces.getCelebrity()) {
+            for (Faces face : props.getFaces()) {
+                List<EnrichmentMetadata.Label> faceLabels = new ArrayList<>();
+                if (face.getCelebrity() != null && !face.getCelebrity().isEmpty()) {
+                    for (Celebrity celeb : face.getCelebrity()) {
                         if (celeb.getProb() > minConfidence) {
-                            labels.add(new AIMetadata.Label(celeb.getName(), celeb.getProb()));
+                            faceLabels.add(new AIMetadata.Label(celeb.getName(), celeb.getProb()));
                         }
                     }
                 }
 
-                if (faces.getAttributes() != null && !faces.getAttributes().isEmpty()) {
-                    for (Map.Entry<String, Float> attrib : faces.getAttributes().entrySet()) {
-                        labels.add(new AIMetadata.Label(attrib.getKey(), attrib.getValue()));
+                if (face.getAttributes() != null && !face.getAttributes().isEmpty()) {
+                    for (Map.Entry<String, Float> attrib : face.getAttributes().entrySet()) {
+                        if (attrib.getValue() > minConfidence) {
+                            faceLabels.add(new AIMetadata.Label(attrib.getKey(), attrib.getValue()));
+                        }
                     }
                 }
+
+                //Hard code confidence for now
+                tags.add(new AIMetadata.Tag("face", kind, null,
+                                            new AIMetadata.Box(face.getX2(), face.getY2(), face.getX1(), face.getY1()),
+                                            faceLabels,
+                                            minConfidence
+                ));
             }
         }
 

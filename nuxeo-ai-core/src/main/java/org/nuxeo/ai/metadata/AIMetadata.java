@@ -22,17 +22,19 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
+import static org.nuxeo.ai.search.RelativePositionUtils.getCentrePoint;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.nuxeo.ai.search.Point;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * A normalized view of metadata returned by an intelligent service
@@ -297,6 +299,8 @@ public abstract class AIMetadata implements Serializable {
 
         public final float top;
 
+        public final Point centre;
+
         @JsonCreator
         public Box(@JsonProperty("width") float width,
                    @JsonProperty("height") float height,
@@ -306,6 +310,7 @@ public abstract class AIMetadata implements Serializable {
             this.height = height;
             this.left = left;
             this.top = top;
+            this.centre = getCentrePoint(left, top, width, height);
         }
 
         @Override
@@ -331,6 +336,7 @@ public abstract class AIMetadata implements Serializable {
                     .append("height", height)
                     .append("left", left)
                     .append("top", top)
+                    .append("centre", centre)
                     .toString();
         }
     }

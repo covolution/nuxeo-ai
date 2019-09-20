@@ -45,6 +45,7 @@ curl -X PUT \
 ],
   "properties": {
     "enrichment:items": {
+      "type": "nested",    
       "properties": {
         "labels": {
           "type": "keyword",
@@ -70,6 +71,64 @@ curl -X PUT \
         "kind": {
           "type": "keyword",
           "ignore_above": 256
+        },
+        "tags": {
+            "type": "nested",        
+            "properties": {
+                "box": {
+                    "properties": {
+                        "center": {
+                            "properties": {
+                                "box": {
+                                    "type": "integer"
+                                },
+                                "x": {
+                                    "type": "integer"
+                                },
+                                "y": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "height": {
+                            "type": "float"
+                        },
+                        "left": {
+                            "type": "float"
+                        },
+                        "top": {
+                            "type": "float"
+                        },
+                        "width": {
+                            "type": "float"
+                        }
+                    }
+                },
+                "confidence": {
+                    "type": "float"
+                },
+                "kind": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                },
+                "name": {
+                    "type": "keyword",
+                    "copy_to": [
+                        "all_field"
+                    ],
+                    "ignore_above": 256,
+                    "fields": {
+                        "fulltext": {
+                            "analyzer": "fulltext",
+                            "type": "text"
+                        }
+                    }
+                },
+                "reference": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                }
+            }
         }
       }
     }
@@ -266,6 +325,7 @@ Then in the `<Loggers>` section, add a logger pointing to the `AI-FILE` appender
 ```
 $NUXEO_HOME/bin/stream.sh --help
 ```
+##### Enrichment
 For example, to see the last 8 messages in the "images" stream, for chronicle you would use the first command below (passing in `--chronicle nxserver/data/stream/pipes`) and for Kafka you would use the second command below (passing in just `-k`).
 ```
 ./bin/stream.sh tail -n 8 --chronicle nxserver/data/stream/pipes -l images --codec avro
@@ -276,7 +336,178 @@ Similarly, to view the consumer lag on the "images" stream, for chronicle use th
 ./bin/stream.sh lag --chronicle nxserver/data/stream/pipes -l images --verbose
 ./bin/stream.sh lag -k -l images --verbose
 ```
+##### Dataset Export
+To view the status of the export command:
+```
+export COMMAND_ID=baa42dfb-e8e0-4694-a34b-1aa538ba0153
+curl -s -X GET "localhost:8080/nuxeo/api/v1/bulk/$COMMAND_ID" -u Administrator:Administrator -H 'content-type: application/json' 
+```
 
+To test your export query:
+```
+curl -u Administrator:Administrator --get --data-urlencode "query=SELECT * FROM Document" "http://localhost:8080/nuxeo/api/v1/query?pageSize=1&currentPageIndex=0" | jq
+```
+
+```
+./bin/stream.sh lag --chronicle /var/lib/nuxeo/data/stream/bulk -l bulkDatasetExport
+./bin/stream.sh lag --chronicle /var/lib/nuxeo/data/stream/bulk -l exp-training
+./bin/stream.sh lag --chronicle /var/lib/nuxeo/data/stream/bulk -l exp-validation
+./bin/stream.sh tail -n 8 --chronicle /var/lib/nuxeo/data/stream/bulk -l done --codec avro --schema-store /var/lib/nuxeo/data/avro/ --data-size 3000
+./bin/stream.sh tail -n 8 --chronicle /var/lib/nuxeo/data/stream/bulk -l command --codec avro --schema-store /var/lib/nuxeo/data/avro/ --data-size 3000
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PROBABLY DON"T NEED items as nested, just tags
+## Queries
+```
+POST /nuxeo/_search
+{
+  "query": {
+    "match": {
+      "enrichment:items.tags.name.fulltext": "ballmer"
+    }
+  }
+}
+
+
+POST /nuxeo/_search
+{
+  "query": {
+    "nested": {
+      "path": "enrichment:items.tags",
+      "query": {
+        "match": {
+          "enrichment:items.tags.name.fulltext": "ballmer"
+        }
+      }
+    }
+  }
+}
+
+POST /nuxeo/_search
+{
+    "query" : { "match": { "ecm:uuid": "aeeddcbf-bda9-47b9-a166-015982be908e" }}
+}
+
+
+POST /nuxeo/_search
+{
+	"query": {
+		"nested": {
+			"path": "enrichment:items.tags",
+			"query": {
+				"bool": {
+					"must": {
+						"terms": {
+							"enrichment:items.tags.box.center.x": ["3"]
+						}
+					},
+					"filter": {
+						"match_phrase_prefix": {
+							"enrichment:items.tags.name.fulltext": "Zucker"
+						}
+					}
+				}
+			}
+		}
+	},
+	"_source": {
+		"includes": [
+			"enrichment:items.tags",
+			"ecm:path"
+		],
+		"excludes": []
+	}
+}
+
+POST /nuxeo/_search
+{
+    "query" : { "match": { "ecm:uuid": "76b5837c-88fe-4bc6-87c6-b551927f7697" }}
+}
+
+
+POST /nuxeo/_search
+{
+	"query": {
+		"nested": {
+			"path": "enrichment:items.tags",
+			"query": {
+				"bool": {
+					"must": {
+            "range" : {
+                "enrichment:items.tags.box.center.x" : {
+                    "gte" : 6
+                }
+            }
+					},
+					"filter": {
+						"match_phrase_prefix": {
+							"enrichment:items.tags.name.fulltext": "Zucker"
+						}
+					}
+				}
+			}
+		}
+	},
+	"_source": {
+		"includes": [
+			"enrichment:items.tags",
+			"ecm:path"
+		],
+		"excludes": []
+	}
+}
+
+POST /nuxeo/_search
+{
+	"query": {
+		"nested": {
+			"path": "enrichment:items.tags",
+			"query": {
+				"bool": {
+					"must": {
+            "range" : {
+                "enrichment:items.tags.box.center.x" : {
+                    "lt" : 7
+                }
+            }
+					},
+					"filter": {
+						"match_phrase_prefix": {
+							"enrichment:items.tags.name.fulltext": "musk"
+						}
+					}
+				}
+			}
+		}
+	},
+	"_source": {
+		"includes": [
+			"enrichment:items.tags",
+			"ecm:path"
+		],
+		"excludes": []
+	}
+}
+```
 # License
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
 

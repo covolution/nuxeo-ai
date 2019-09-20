@@ -13,4 +13,6 @@ nuxeo.enrichment.save.tags=false
 nuxeo.enrichment.save.facets=true
 nuxeo.enrichment.raiseEvent=true
 
+nuxeo.enrichment.index.tags=true
+
 nuxeo.ai.export.tensorflow=true

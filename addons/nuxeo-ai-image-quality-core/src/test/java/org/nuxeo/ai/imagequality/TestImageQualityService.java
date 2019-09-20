@@ -75,8 +75,8 @@ public class TestImageQualityService {
         service = aiComponent.getEnrichmentService("ai.imagequality.mock");
         metadata = (List<EnrichmentMetadata>) service.enrich(EnrichmentTestFeature.blobTestImage(manager));
         assertEquals(1, metadata.size());
-        assertEquals(17, metadata.get(0).getLabels().size());
-        assertEquals(4, metadata.get(0).getTags().size());
+        assertEquals(12, metadata.get(0).getLabels().size());
+        assertEquals(5, metadata.get(0).getTags().size());
     }
 
     @Test

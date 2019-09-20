@@ -23,6 +23,54 @@
     <xs:restriction base="xs:string" ref:resolver="directoryResolver" ref:directory="aikind"/>
   </xs:simpleType>
 
+  <xs:complexType name="pointType">
+    <xs:sequence>
+      <xs:element name="x" type="xs:integer"/>
+      <xs:element name="y" type="xs:integer"/>
+      <xs:element name="box" type="xs:integer"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="labelType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="confidence" type="xs:double"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="labelListType">
+    <xs:sequence>
+      <xs:element name="label" type="nxrich:labelType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="boxType">
+    <xs:sequence>
+      <xs:element name="width" type="xs:double"/>
+      <xs:element name="height" type="xs:double"/>
+      <xs:element name="left" type="xs:double"/>
+      <xs:element name="top" type="xs:double"/>
+      <xs:element name="center" type="nxrich:pointType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="tagsType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="kind" type="xs:string"/>
+      <xs:element name="reference" type="xs:string"/>
+      <xs:element name="confidence" type="xs:double"/>
+      <xs:element name="features" type="nxrich:labelListType"/>
+      <xs:element name="box" type="nxrich:boxType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="tagListType">
+    <xs:sequence>
+      <xs:element name="tag" type="nxrich:tagsType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="itemsType">
     <xs:sequence>
       <xs:element name="creator">
@@ -35,6 +83,7 @@
       <xs:element name="raw" type="nxrich:content"/>
       <xs:element name="normalized" type="nxrich:content"/>
       <xs:element name="inputProperties" type="nxrich:stringList"/>
+      <xs:element name="tags" type="nxrich:tagListType"/>
       <xs:element name="labels" type="nxrich:stringList"/>
     </xs:sequence>
   </xs:complexType>

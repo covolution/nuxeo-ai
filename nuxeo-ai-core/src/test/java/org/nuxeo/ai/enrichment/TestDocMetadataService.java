@@ -18,6 +18,7 @@
  */
 package org.nuxeo.ai.enrichment;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.nuxeo.ai.AIConstants.AI_CREATOR_PROPERTY;
@@ -54,6 +55,8 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import junit.framework.TestCase;
 
@@ -121,6 +124,46 @@ public class TestDocMetadataService {
         classifications = classProp.getValue(List.class);
         assertEquals("There is still 2 classifications because nothing was saved", 2, classifications.size());
 
+    }
+
+    @Test
+    public void testSaveTags() {
+        assertNotNull(docMetadataService);
+        DocumentModel testDoc = session.createDocumentModel("/", "My Save tags", "File");
+        testDoc = session.createDocument(testDoc);
+        List<EnrichmentMetadata.Label> labels = Stream.of("label1", "l2", "lab3")
+                                                      .map(l -> new EnrichmentMetadata.Label(l, 1))
+                                                      .collect(Collectors.toList());
+
+        List<EnrichmentMetadata.Tag> tags =
+                Stream.of("tag1", "tag2")
+                      .map(l -> new EnrichmentMetadata.Tag(l,
+                                                           "t1",
+                                                           "myref" + l,
+                                                           new AIMetadata.Box(0.5f, 0.3f, -0.2f, 2f),
+                                                           singletonList(new EnrichmentMetadata.Label("f" + l, 1)),
+                                                           0.65f))
+                      .collect(Collectors.toList());
+        BlobTextFromDocument blobTextFromDoc = new BlobTextFromDocument(testDoc);
+        blobTextFromDoc.addProperty("dc:title", "tbloby");
+        EnrichmentMetadata metadata =
+                new EnrichmentMetadata.Builder("m1", SERVICE_NAME, blobTextFromDoc)
+                        .withLabels(labels)
+                        .withTags(tags)
+                        .withDigest("blobxx")
+                        .withDigest("freblogs")
+                        .withCreator("bob")
+                        .withRawKey("xyz")
+                        .build();
+        assertNotNull(metadata);
+        testDoc = docMetadataService.saveEnrichment(session, metadata);
+        txFeature.nextTransaction();
+        Property classProp = testDoc.getPropertyObject(ENRICHMENT_SCHEMA_NAME, ENRICHMENT_ITEMS);
+        assertNotNull(classProp);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> classifications = classProp.getValue(List.class);
+        assertEquals(1, classifications.size());
+        Map<String, Object> classification = classifications.get(0);
     }
 
     @Test

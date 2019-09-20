@@ -47,6 +47,7 @@ import org.nuxeo.ecm.core.blob.BlobManager;
 import org.nuxeo.ecm.core.blob.BlobMetaImpl;
 import org.nuxeo.ecm.platform.tag.TagService;
 import org.nuxeo.ecm.platform.test.PlatformFeature;
+import org.nuxeo.elasticsearch.test.RepositoryElasticSearchFeature;
 import org.nuxeo.lib.stream.computation.Record;
 import org.nuxeo.lib.stream.log.LogAppender;
 import org.nuxeo.lib.stream.log.LogLag;
@@ -67,7 +68,9 @@ import com.codahale.metrics.SharedMetricRegistries;
  * Tests a fully configured stream processor
  */
 @RunWith(FeaturesRunner.class)
-@Features({EnrichmentTestFeature.class, PlatformFeature.class})
+@Features({EnrichmentTestFeature.class, PlatformFeature.class, RepositoryElasticSearchFeature.class})
+@Deploy("org.nuxeo.ai.ai-core")
+@Deploy("org.nuxeo.elasticsearch.core.test:elasticsearch-test-contrib.xml")
 @Deploy({"org.nuxeo.ecm.platform.tag", "org.nuxeo.ecm.automation.core",
         "org.nuxeo.ai.ai-core:OSGI-INF/stream-test.xml"})
 public class TestConfiguredStreamProcessors {

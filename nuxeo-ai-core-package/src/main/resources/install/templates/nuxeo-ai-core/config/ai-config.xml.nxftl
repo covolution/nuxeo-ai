@@ -46,4 +46,171 @@
   </extension>
 </#if>
 
+<!-- Hello world -->
+
+<#if "${nuxeo.enrichment.index.tags}" == "true">
+    <extension target="org.nuxeo.elasticsearch.ElasticSearchComponent" point="elasticSearchIndex">
+        <elasticSearchIndex name="nuxeo-ai-tags" type="aitag">
+          <settings>
+            {
+            "number_of_shards" : 1,
+            "auto_expand_replicas" : "0-all",
+             "analysis": {
+                "filter": {
+                  "truncate_filter": {
+                    "length": 256,
+                    "type": "truncate"
+                  },
+                  "en_stem_filter": {
+                    "name": "minimal_english",
+                    "type": "stemmer"
+                  },
+                  "en_stop_filter": {
+                    "stopwords": [
+                      "_english_"
+                    ],
+                    "type": "stop"
+                  },
+                  "word_delimiter_filter": {
+                    "type": "word_delimiter",
+                    "preserve_original": true
+                  },
+                  "asciifolding_filter": {
+                    "type": "asciifolding",
+                    "preserve_original": true
+                  }
+                },
+                "tokenizer": {
+                  "path_tokenizer": {
+                    "delimiter": "/",
+                    "type": "path_hierarchy"
+                  }
+                },
+                "analyzer": {
+                  "fulltext": {
+                    "filter": [
+                      "word_delimiter_filter",
+                      "lowercase",
+                      "en_stop_filter",
+                      "en_stem_filter",
+                      "asciifolding_filter"
+                    ],
+                    "type": "custom",
+                    "tokenizer": "standard"
+                  },
+                  "path_analyzer": {
+                    "type": "custom",
+                    "tokenizer": "path_tokenizer"
+                  },
+                  "lowercase_analyzer": {
+                    "type": "custom",
+                    "filter": [
+                      "lowercase",
+                      "asciifolding"
+                    ],
+                    "tokenizer": "keyword"
+                  },
+                  "default": {
+                    "type": "custom",
+                    "tokenizer": "keyword",
+                    "filter": [
+                      "truncate_filter"
+                    ]
+                  }
+                }
+              }
+            }
+          </settings>
+          <mapping>
+            {
+               "properties": {
+                    "box": {
+                        "properties": {
+                            "center": {
+                                "properties": {
+                                    "box": {
+                                        "type": "integer"
+                                    },
+                                    "x": {
+                                        "type": "integer"
+                                    },
+                                    "y": {
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "height": {
+                                "type": "float"
+                            },
+                            "left": {
+                                "type": "float"
+                            },
+                            "top": {
+                                "type": "float"
+                            },
+                            "width": {
+                                "type": "float"
+                            }
+                        }
+                    },
+                    "confidence": {
+                        "type": "float"
+                    },
+                    "context": {
+                      "properties": {
+                        "digests": {
+                           "type": "keyword",
+                           "ignore_above": 256
+                        },
+                        "documentRef": {
+                           "type": "keyword",
+                           "ignore_above": 256
+                        },
+                        "inputProperties": {
+                           "type": "keyword",
+                           "ignore_above": 256
+                        },
+                        "repositoryName": {
+                           "type": "keyword",
+                           "ignore_above": 256
+                        }
+                      }
+                    },
+                    "kind": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    },
+                    "name": {
+                        "type": "keyword",
+                        "ignore_above": 256,
+                        "fields": {
+                            "fulltext": {
+                                "analyzer": "fulltext",
+                                "type": "text"
+                            }
+                        }
+                    },
+                    "reference": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
+            }
+          </mapping>
+
+        </elasticSearchIndex>
+    </extension>
+
+    <extension target="org.nuxeo.runtime.stream.service" point="streamProcessor">
+      <streamProcessor name="tagsIndexer" defaultConcurrency="2" defaultPartitions="4"
+                       logConfig="${nuxeo.ai.stream.config.name}"
+                       class="org.nuxeo.ai.functions.IndexingEnrichmentConsumer">
+        <option name="indexType">aitag</option>
+        <option name="source">${nuxeo.enrichment.source.stream}</option>
+      </streamProcessor>
+    </extension>
+</#if>
+
+<!-- End of world -->
+
 </component>

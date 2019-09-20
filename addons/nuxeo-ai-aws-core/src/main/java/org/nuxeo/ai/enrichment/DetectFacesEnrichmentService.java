@@ -111,7 +111,7 @@ public class DetectFacesEnrichmentService extends AbstractEnrichmentService impl
      */
     protected AIMetadata.Tag newFaceTag(FaceDetail faceDetail) {
         BoundingBox box = faceDetail.getBoundingBox();
-        if (faceDetail.getConfidence() >= minConfidence) {
+        if (faceDetail.getConfidence() >= 0.2) {
             List<AIMetadata.Label> labels = collectLabels(faceDetail);
             return new AIMetadata.Tag("face", kind, null,
                                       new AIMetadata.Box(box.getWidth(), box.getHeight(), box.getLeft(), box.getTop()),

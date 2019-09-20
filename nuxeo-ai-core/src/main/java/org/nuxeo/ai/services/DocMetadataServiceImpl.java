@@ -27,6 +27,7 @@ import static org.nuxeo.ai.AIConstants.ENRICHMENT_KIND_PROPERTY;
 import static org.nuxeo.ai.AIConstants.ENRICHMENT_LABELS_PROPERTY;
 import static org.nuxeo.ai.AIConstants.ENRICHMENT_RAW_KEY_PROPERTY;
 import static org.nuxeo.ai.AIConstants.ENRICHMENT_SCHEMA_NAME;
+import static org.nuxeo.ai.AIConstants.ENRICHMENT_TAGS_PROPERTY;
 import static org.nuxeo.ai.AIConstants.NORMALIZED_PROPERTY;
 import static org.nuxeo.ai.pipes.events.DirtyEventListener.DIRTY_EVENT_NAME;
 import static org.nuxeo.ai.pipes.services.JacksonUtil.MAPPER;
@@ -65,11 +66,11 @@ import org.nuxeo.runtime.services.config.ConfigurationService;
  */
 public class DocMetadataServiceImpl extends DefaultComponent implements DocMetadataService {
 
-    private static final Log log = LogFactory.getLog(DocMetadataServiceImpl.class);
-
     public static final String ENRICHMENT_ADDED = "ENRICHMENT_ADDED";
 
     public static final String ENRICHMENT_USING_FACETS = "nuxeo.enrichment.facets.inUse";
+
+    private static final Log log = LogFactory.getLog(DocMetadataServiceImpl.class);
 
     @Override
     public void start(ComponentContext context) {
@@ -155,6 +156,10 @@ public class DocMetadataServiceImpl extends DefaultComponent implements DocMetad
             if (StringUtils.isNotBlank(metadata.getCreator())) {
                 anEntry.put(AI_CREATOR_PROPERTY, metadata.getCreator());
             }
+            if (!metadata.getTags().isEmpty()) {
+                anEntry.put(ENRICHMENT_TAGS_PROPERTY, metadata.getTags().stream().map(this::toTag)
+                                                              .collect(Collectors.toList()));
+            }
             if (log.isDebugEnabled()) {
                 log.debug(String.format("Enriching doc %s with %s", metadata.context.documentRef, labels));
             }
@@ -168,6 +173,34 @@ public class DocMetadataServiceImpl extends DefaultComponent implements DocMetad
         }
 
         return anEntry;
+    }
+
+    protected Map toTag(AIMetadata.Tag tag) {
+        Map<String, Object> tagMap = new HashMap<>();
+        tagMap.put("name", tag.name);
+        tagMap.put("kind", tag.kind);
+        tagMap.put("reference", tag.reference);
+        tagMap.put("confidence", tag.confidence);
+
+        if (tag.box != null) {
+            Map<String, Object> boxMap = new HashMap<>();
+            boxMap.put("width", tag.box.width);
+            boxMap.put("height", tag.box.height);
+            boxMap.put("left", tag.box.left);
+            boxMap.put("top", tag.box.top);
+
+            if (tag.box.centre != null) {
+                Map<String, Object> pointMap = new HashMap<>();
+                pointMap.put("x", tag.box.centre.getX());
+                pointMap.put("y", tag.box.centre.getY());
+                pointMap.put("box", tag.box.centre.getBox());
+                boxMap.put("center", pointMap);
+            }
+            tagMap.put("box", boxMap);
+        }
+        return tagMap;
+        //                    @JsonProperty("features") List<AIMetadata.Label > features,
+
     }
 
     /**

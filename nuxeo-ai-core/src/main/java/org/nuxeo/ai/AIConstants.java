@@ -36,6 +36,7 @@ public class AIConstants {
     public static final String ENRICHMENT_RAW_KEY_PROPERTY = "raw";
     public static final String AI_CREATOR_PROPERTY = "creator";
     public static final String ENRICHMENT_LABELS_PROPERTY = "labels";
+    public static final String ENRICHMENT_TAGS_PROPERTY = "tags";
     public static final String ENRICHMENT_KIND_PROPERTY = "kind";
 
     public static final String EXPORT_ACTION_NAME = "bulkDatasetExport";
