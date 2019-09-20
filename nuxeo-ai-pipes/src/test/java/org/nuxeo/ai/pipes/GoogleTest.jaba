@@ -1,0 +1,72 @@
+package org.nuxeo.ai.pipes;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.nuxeo.ecm.core.blob.ManagedBlob;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.core.GoogleCredentialsProvider;
+import com.google.cloud.vision.v1.AnnotateImageRequest;
+import com.google.cloud.vision.v1.AnnotateImageResponse;
+import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
+import com.google.cloud.vision.v1.EntityAnnotation;
+import com.google.cloud.vision.v1.Feature;
+import com.google.cloud.vision.v1.Feature.Type;
+import com.google.cloud.vision.v1.Image;
+import com.google.cloud.vision.v1.ImageAnnotatorClient;
+import com.google.cloud.vision.v1.ImageAnnotatorSettings;
+import com.google.protobuf.ByteString;
+
+public class GoogleTest {
+
+
+    public static void testMe(ManagedBlob blob, List<String> features) throws Exception {
+
+        ImageAnnotatorSettings imageAnnotatorSettings = ImageAnnotatorSettings.newBuilder()
+                            .setCredentialsProvider(GoogleCredentialsProvider.newBuilder().build())
+                            .build();
+        // Instantiates a client
+        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create(imageAnnotatorSettings)) {
+
+            ByteString imgBytes = ByteString.copyFrom(blob.getByteArray());
+            List<Feature> featureList = buildFeatureList(features, 5);
+            // Builds the image annotation request
+            List<AnnotateImageRequest> requests = new ArrayList<>();
+            Image img = Image.newBuilder().setContent(imgBytes).build();
+            AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
+                                                               .addAllFeatures(featureList)
+                                                               .setImage(img)
+                                                               .build();
+            requests.add(request);
+
+            // Performs label detection on the image file
+            BatchAnnotateImagesResponse response = vision.batchAnnotateImages(requests);
+            List<AnnotateImageResponse> responses = response.getResponsesList();
+
+            for (AnnotateImageResponse res : responses) {
+                if (res.hasError()) {
+                    System.out.printf("Error: %s\n", res.getError().getMessage());
+                    return;
+                }
+
+                for (EntityAnnotation annotation : res.getLabelAnnotationsList()) {
+                    annotation.getAllFields().forEach((k, v) ->
+                                                              System.out.printf("%s : %s\n", k, v.toString()));
+                }
+            }
+        }
+    }
+
+
+    protected static List<Feature> buildFeatureList(List<String> features, int maxResults) {
+
+        List<Feature> featureList = new ArrayList<>();
+        for (String feature : features) {
+            featureList.add(Feature.newBuilder()
+                                   .setType(Type.valueOf(feature))
+                                   .setMaxResults(maxResults)
+                                   .build());
+        }
+        return featureList;
+    }
+
+}
